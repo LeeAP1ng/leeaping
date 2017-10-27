@@ -1,0 +1,235 @@
+## Welcome to GitHub Pages
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> 
+<html xmlns="http:// www.xibaonpx.com"> 
+<head> 
+<title>【荐】JS+CSS实现用滚动条控制图片水平展示效果_ 潍坊发电机组(www.ouyi168.com">潍坊发电机组)</title> 
+<style> 
+body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,form,fieldset,input,p,blockquote,th,td{margin:0;padding:0;font-size:12px} 
+table{border-collapse:collapse;border-spacing:0;} 
+fieldset,img{border:0;} 
+address,caption,cite,code,dfn,em,strong,th,var{font-style:normal;font-weight:normal;}
+ol,ul {list-style:none;} 
+caption,th {text-align:left;} 
+h1,h2,h3,h4,h5,h6{font-size:100%;} 
+body{ font:12px/160% "宋体"} 
+#picBox{width:880px; height:100px; border:#ccc solid 1px; margin:10px auto; padding:10px; overflow:hidden; position:relative;} 
+#picBox ul{overflow:hidden;position:absolute; top:10px; left:0;} 
+#picBox li{ float:left; width:225px; height:100px; line-height:100px; text-align:center;} 
+#picBox li a{ display:block; width:200px; height:100%; margin:0 auto;text-align:center; background:#FF9900;} 
+#scrollBar{ width:900px; height:20px; border:#ccc solid 1px; margin:0 auto} 
+#scrollBar #dragObj{ width:100px; height:20px; text-align:center; cursor:pointer; background:#DDD} 
+</style> 
+</head> 
+<body> 
+<div id="picBox"> 
+<ul id="picList"> 
+<li><a href="#">图片地址1</a></li> 
+<li><a href="#">图片地址2</a></li> 
+<li><a href="#">图片地址3</a></li> 
+<li><a href="#">图片地址4</a></li> 
+<li><a href="#">图片地址5</a></li> 
+<li><a href="#">图片地址6</a></li> 
+<li><a href="#">图片地址7</a></li> 
+<li><a href="#">图片地址8</a></li> 
+<li><a href="#">图片地址9</a></li> 
+<li><a href="#">图片地址10</a></li> 
+</ul> 
+</div> 
+<div id="scrollBar"><div id="dragObj">拖动</div></div> 
+<script type="text/javascript"> 
+(function(){ 
+if(!window.zzc){window['zzc'] = {} }; 
+function isIE(){ return (document.all) ? true : false;}; 
+window['zzc']['isIE'] = isIE; 
+function $(id){return typeof id == 'string' ? document.getElementById(id) : id}; 
+window['zzc']['$'] = $; 
+function $$(id,tag){return $(id).getElementsByTagName(tag);} 
+window['zzc']['$$'] = $$; 
+function getElementsByClassName(name,type){ 
+var r=[]; 
+var re=new RegExp("(^|\\s)"+name+"(\\s|$)"); 
+var elem=document.getElementsByTagName(type||"*"); 
+for(var i=0;i<elem.length;i++){ 
+if(re.test(elem[i].className)) r.push(elem[i]); 
+} 
+return r; 
+} 
+window['zzc']['getElementsByClassName'] = getElementsByClassName; 
+function addEvent(eventTarget,eventType,fnHandler){ 
+if(eventTarget.addEventListener){//for FF 
+eventTarget.addEventListener (eventType,fnHandler,false); 
+} else if(eventTarget.attachEvent){//for IE 
+eventTarget.attachEvent("on" + eventType,fnHandler); 
+} else{//for other 
+eventTarget["on" + eventType] = fnHandler; 
+} 
+}; 
+window['zzc']['addEvent'] = addEvent; 
+function removeEvent(eventTarget,eventType,fnHandler){ 
+if(eventTarget.removeEventListener){//for FF 
+eventTarget.removeEventListener (eventType,fnHandler,false); 
+} else if(eventTarget.detachEvent){//for IE 
+eventTarget.detachEvent("on" + eventType,fnHandler); 
+} else{//for other 
+eventTarget["on" + eventType] = null; 
+} 
+}; 
+window['zzc']['removeEvent'] = removeEvent; 
+function getBrowerWindowSize(){ 
+var de = document.documentElement; 
+return{ 
+'width':(self.innerWidth||( de && de.offsetWidth )||document.body.offsetWidth), 
+'height':(self.innerHeight||(de && de.offsetHeight)||document.body.offsetHeight) 
+} 
+}; 
+window['zzc']['getBrowerWindowSize'] = getBrowerWindowSize; 
+function getPageSize(){ 
+var de=document.documentElement; 
+return{ 
+'width':(document.body.scrollWidth||(de&&de.scrollWidth)), 
+'height':(document.body.scrollHeight||(de&&de.scrollHeight)) 
+} 
+}; 
+window['zzc']['getPageSize'] = getPageSize; 
+function pageX(elem){ 
+return elem.offsetParent?(elem.offsetLeft+pageX(elem.offsetParent)):elem.offsetLeft; 
+} 
+window['zzc']['pageX'] = pageX; 
+
+function pageY(elem){ 
+return elem.offsetParent?(elem.offsetTop+pageY(elem.offsetParent)):elem.offsetTop; 
+} 
+window['zzc']['pageY'] = pageY; 
+})(); 
+function Drag(activeObj,dragObj,options){ 
+var aObj = zzc.$(activeObj);//激活元素 
+var dObj = zzc.$(dragObj);//拖动元素 
+var iDiffX = 0; 
+var iDiffY = 0; 
+var Options = options || {}; 
+var Limit = Options.Limit||false; 
+var mxLeft = parseInt(Options.mxLeft)||0;//左边限制 
+var mxRight = parseInt(Options.mxRight)||0;//右边限制 
+var mxTop = parseInt(Options.mxTop)||0;//上边限制 
+var mxBottom = parseInt(Options.mxBottom)||0;//下边限制 
+var onMove = Options.onMove||function(){};//移动时执行 
+
+(function start(){ 
+zzc.addEvent(aObj,'mousedown',handleMouseDown); 
+})(); 
+
+function handleMouseMove(oEvent){ 
+var oEvent = window.event || arguments[0]; 
+var iLeft = oEvent.clientX - iDiffX, iTop = oEvent.clientY - iDiffY; 
+if(Limit){ 
+var iRight = iLeft + dObj.offsetWidth - mxRight, iBottom = iTop + dObj.offsetHeight - mxBottom; 
+if(iRight > 0) iLeft -= iRight; 
+if(iBottom > 0) iTop -= iBottom; 
+if(mxLeft > iLeft) iLeft = mxLeft; 
+if(mxTop > iTop) iTop = mxTop; 
+ } 
+  
+dObj.style.left = iLeft + 'px'; 
+dObj.style.top = iTop + 'px'; 
+onMove(); 
+}; 
+function handleMouseDown(oEvent){ 
+         //清除选择(ie设置捕获后默认带这个) 
+    window.getSelection && window.getSelection().removeAllRanges(); 
+var oEvent = window.event || arguments[0]; 
+dObj.style.position = "absolute";  
+iDiffX = oEvent.clientX - dObj.offsetLeft; 
+iDiffY = oEvent.clientY - dObj.offsetTop; 
+zzc.addEvent(document,'mousemove',handleMouseMove); 
+zzc.addEvent(document,'mouseup',handleMouseUp); 
+if(zzc.isIE()){ 
+zzc.addEvent(dObj, "losecapture", handleMouseUp); 
+dObj.setCapture(); 
+}else{ 
+zzc.addEvent(window, "blur", handleMouseUp); 
+} 
+     }; 
+function handleMouseUp(){ 
+zzc.removeEvent(document,'mousemove',handleMouseMove); 
+zzc.removeEvent(document,'mouseup',handleMouseUp); 
+if(zzc.isIE()){ 
+zzc.removeEvent(dObj, "losecapture", handleMouseUp); 
+dObj.releaseCapture(); 
+}else{ 
+zzc.removeEvent(window, "blur", handleMouseUp); 
+} 
+     }; 
+} 
+//使图片滚动。 
+function picSlideByDrag(picBox,picList,dragObj,options){ 
+     var Options = options || {}; 
+var mxLeft = parseInt(Options.mxLeft)||0;//左边限制 
+var mxRight = parseInt(Options.mxRight)||0;//右边限制 
+var mxTop = parseInt(Options.mxTop)||0;//上边限制 
+var mxBottom = mxTop + dragObj.clientHeight;//下边限制 
+function init(){ 
+var picListChild = zzc.$$(picList,'li'); 
+var picListWidth = picListChild.length * picListChild[0].offsetWidth; 
+picList.style.width = picListWidth + 'px'; 
+if(picListWidth <= picBox.clientWidth){ 
+dragObj.style.display = "none"; 
+} 
+    }; 
+function picSlide(){ 
+picList.style.left = -(((zzc.pageX(dragObj) - mxLeft)/(mxRight-mxLeft-dragObj.clientWidth))*(picList.clientWidth-picBox.clientWidth)) + "px"; 
+}; 
+
+init(); 
+Drag(dragObj,dragObj,{Limit:true,mxTop:mxTop,mxRight:mxRight,mxBottom:mxBottom,mxLeft:mxLeft,onMove:picSlide});
+
+}; 
+window.onload = function(){ 
+var picBox = zzc.$("picBox"); 
+var picList = zzc.$("picList"); 
+var scrollBar = zzc.$("scrollBar"); 
+var dragObj = zzc.$("dragObj"); 
+var initTop = zzc.pageY(scrollBar) + 1; 
+var initLeft = zzc.pageX(scrollBar) + 1; 
+var initRight = initLeft + scrollBar.clientWidth; 
+     picSlideByDrag(picBox,picList,dragObj,{mxTop:initTop,mxLeft:initLeft,mxRight:initRight}); 
+} 
+</script>  
+<br /> 
+<p><a href="http://www.ouyi168.com">潍坊发电机组</a> - 最专业的网页代码下载网站 - 致力为中国站长提供有质量的网页代码！</p> 
+</body> 
+</html> 
+You can use the [editor on GitHub](https://github.com/LeeAP1ng/leeaping/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+
+Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+
+### Markdown
+
+Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+
+```markdown
+Syntax highlighted code block
+
+# Header 1
+## Header 2
+### Header 3
+
+- Bulleted
+- List
+
+1. Numbered
+2. List
+
+**Bold** and _Italic_ and `Code` text
+
+[Link](url) and ![Image](src)
+```
+
+For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
+
+### Jekyll Themes
+
+Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/LeeAP1ng/leeaping/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+
+### Support or Contact
+
+Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
